@@ -224,13 +224,18 @@ const getMyVaults = async (req, res) => {
             ownerId: req.user.id,
         }).sort({ createdAt: -1 });
 
+        const response = vaults.map(vault => ({
+            ...vault.toObject(),
+            files: mapVaultFiles(vault.files),
+        }));
+
         return res.status(200).json({
             success: true,
-            data: vaults,
+            data: response,
         });
 
     } catch (error) {
-        console.log("GET VAULTS ERROR ❌:", error); // 🔥 ADD THIS
+        console.log(error);
 
         return res.status(500).json({
             success: false,
@@ -271,7 +276,7 @@ const getSingleVault = async (req, res) => {
 
         // unlock update (safe)
         vault.isUnlocked = true;
-        vault.status = "unlocked";
+        vault.status = "unlocked"; z
         await vault.save();
 
         return res.status(200).json({
