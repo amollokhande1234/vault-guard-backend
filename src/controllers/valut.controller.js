@@ -309,7 +309,7 @@ const createVault = async (req, res) => {
         return res.status(500).json({
 
             success: false,
-            error: erorr,
+            error: erorr.message,
 
             message:
                 "Something went wrong while creating the vault.",
