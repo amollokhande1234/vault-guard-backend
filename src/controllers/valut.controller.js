@@ -288,7 +288,6 @@ const getSingleVault = async (req, res) => {
             await vault.save();
         }
 
-
         if (vault.status === "locked") {
             vault.status = "unlocked";
             vault.isUnlocked = true;
