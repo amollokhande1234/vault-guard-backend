@@ -1,6 +1,8 @@
 const Vault = require("../models/valut.model");
 const cloudinary = require("../config/cloudinary");
 const { encrypt } = require("../config/encryption");
+const { mapVaultFiles } = require("../utils/vaultFileMapper");
+
 
 let createNotification;
 
@@ -222,9 +224,15 @@ const getMyVaults = async (req, res) => {
             ownerId: req.user.id,
         }).sort({ createdAt: -1 });
 
+        const formatted = vaults.map((v) => ({
+            ...v.toObject(),
+            files: mapVaultFiles(v.files),
+        }));
+
+
         return res.status(200).json({
             success: true,
-            data: vaults,
+            data: formatted,
         });
     } catch (error) {
         return res.status(500).json({
@@ -247,35 +255,33 @@ const getSingleVault = async (req, res) => {
             });
         }
 
-        const currentDate = new Date();
+        // ownership check (IMPORTANT SECURITY)
+        if (vault.ownerId.toString() !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                message: "Unauthorized access",
+            });
+        }
 
-        // 🔒 CHECK IF LOCKED FIRST
-        if (currentDate < vault.unlockDate || vault.status === "locked") {
+        const now = new Date();
+
+        if (now < vault.unlockDate || vault.status === "locked") {
             return res.status(403).json({
                 success: false,
                 message: "Vault is still locked",
             });
         }
 
-        // 🔓 MARK AS UNLOCKED (safe update)
+        // unlock update (safe)
         vault.isUnlocked = true;
         vault.status = "unlocked";
         await vault.save();
-
-        // 🔓 DECRYPT ONLY FOR RESPONSE
-        const decryptedFiles = vault.files.map((file) => ({
-            originalName: file.originalName,
-            fileUrl: decrypt(file.fileUrl),
-            publicId: decrypt(file.publicId),
-            type: file.type,
-            size: file.size,
-        }));
 
         return res.status(200).json({
             success: true,
             data: {
                 ...vault.toObject(),
-                files: decryptedFiles,
+                files: mapVaultFiles(vault.files), // 🔥 CLEAN OUTPUT
             },
         });
 
