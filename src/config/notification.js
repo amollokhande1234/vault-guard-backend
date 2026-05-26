@@ -9,4 +9,4 @@ const createNotification = async ({ userId, title, message, type }) => {
     });
 };
 
-module.exports = createNotification;
+module.exports = { createNotification };

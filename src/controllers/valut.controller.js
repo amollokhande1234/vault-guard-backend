@@ -1,13 +1,18 @@
 const Vault = require("../models/valut.model");
 const cloudinary = require("../config/cloudinary");
-const { encrypt, decrypt } = require("../config/encryption");
+const { encrypt } = require("../config/encryption");
 
+let createNotification;
+
+try {
+    ({ createNotification } = require("../config/notification"));
+} catch (err) {
+    console.log("Notification service not loaded");
+}
 
 // CREATE VAULT
 const createVault = async (req, res) => {
-
     try {
-
         const {
             title,
             description,
@@ -24,100 +29,63 @@ const createVault = async (req, res) => {
         // BASIC VALIDATIONS
         // ===============================
 
-        // Title
         if (!title || title.trim() === "") {
-
             return res.status(400).json({
                 success: false,
                 message: "Vault title is required.",
             });
         }
 
-        // Vault type
         if (!vaultType) {
-
             return res.status(400).json({
                 success: false,
-                message:
-                    "Please select vault type.",
+                message: "Please select vault type.",
             });
         }
 
-        // Allowed vault types
-        const allowedVaultTypes = [
-            "public",
-            "private",
-        ];
+        const allowedVaultTypes = ["public", "private"];
 
-        if (
-            !allowedVaultTypes.includes(vaultType)
-        ) {
-
+        if (!allowedVaultTypes.includes(vaultType)) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Invalid vault type selected.",
+                message: "Invalid vault type selected.",
             });
         }
 
-        // Unlock date
         if (!unlockDate) {
-
             return res.status(400).json({
                 success: false,
-                message:
-                    "Unlock date is required.",
+                message: "Unlock date is required.",
             });
         }
 
-        // Parse date
-        const parsedUnlockDate =
-            new Date(unlockDate);
+        const parsedUnlockDate = new Date(unlockDate);
 
-        // Invalid date
-        if (
-            isNaN(parsedUnlockDate.getTime())
-        ) {
-
+        if (isNaN(parsedUnlockDate.getTime())) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Invalid unlock date format.",
+                message: "Invalid unlock date format.",
             });
         }
 
-        // Future date check
-        if (
-            parsedUnlockDate <= new Date()
-        ) {
-
+        if (parsedUnlockDate <= new Date()) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Unlock date must be a future date.",
+                message: "Unlock date must be a future date.",
             });
         }
 
-        // Files required
-        if (
-            !req.files ||
-            req.files.length === 0
-        ) {
-
+        if (!req.files || req.files.length === 0) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Please upload at least one file.",
+                message: "Please upload at least one file.",
             });
         }
 
-        // Max files
         if (req.files.length > 5) {
-
             return res.status(400).json({
                 success: false,
-                message:
-                    "Maximum 5 files allowed.",
+                message: "Maximum 5 files allowed.",
             });
         }
 
@@ -126,60 +94,38 @@ const createVault = async (req, res) => {
         // ===============================
 
         if (vaultType === "private") {
-
-            // Unlock method required
             if (!unlockMethod) {
-
                 return res.status(400).json({
                     success: false,
-                    message:
-                        "Please select one unlock method.",
+                    message: "Please select one unlock method.",
                 });
             }
 
-            // Allowed unlock methods
             const allowedUnlockMethods = [
                 "otp",
                 "biometric",
                 "location",
             ];
 
-            if (
-                !allowedUnlockMethods.includes(
-                    unlockMethod
-                )
-            ) {
-
+            if (!allowedUnlockMethods.includes(unlockMethod)) {
                 return res.status(400).json({
                     success: false,
-                    message:
-                        "Invalid unlock method selected.",
+                    message: "Invalid unlock method selected.",
                 });
             }
 
-            // Location validation
-            if (
-                unlockMethod === "location"
-            ) {
-
-                if (
-                    !latitude ||
-                    !longitude
-                ) {
-
+            if (unlockMethod === "location") {
+                if (!latitude || !longitude) {
                     return res.status(400).json({
                         success: false,
-                        message:
-                            "Latitude and longitude are required.",
+                        message: "Latitude and longitude are required.",
                     });
                 }
 
                 if (!radiusInMeters) {
-
                     return res.status(400).json({
                         success: false,
-                        message:
-                            "Radius is required for location unlock.",
+                        message: "Radius is required for location unlock.",
                     });
                 }
             }
@@ -192,41 +138,15 @@ const createVault = async (req, res) => {
         let uploadedFiles = [];
 
         for (const file of req.files) {
-
-            const result =
-                await cloudinary.uploader.upload(
-                    file.path,
-                    {
-                        folder: "vault_files",
-                        resource_type: "auto",
-                    }
-                );
-
-            // uploadedFiles.push({
-
-            //     originalName:
-            //         file.originalname,
-
-            //     fileUrl:
-            //         result.secure_url,
-
-            //     publicId:
-            //         result.public_id,
-
-            //     type:
-            //         file.mimetype,
-
-            //     size:
-            //         file.size,
-            // });
+            const result = await cloudinary.uploader.upload(file.path, {
+                folder: "vault_files",
+                resource_type: "auto",
+            });
 
             uploadedFiles.push({
                 originalName: file.originalname,
-
-                fileUrl: encrypt(result.secure_url), // 🔐 ENCRYPTED
-
-                publicId: encrypt(result.public_id), // 🔐 ENCRYPTED
-
+                fileUrl: encrypt(result.secure_url),
+                publicId: encrypt(result.public_id),
                 type: file.mimetype,
                 size: file.size,
             });
@@ -236,83 +156,61 @@ const createVault = async (req, res) => {
         // CREATE VAULT
         // ===============================
 
-        const vault =
-            await Vault.create({
-
-                ownerId: req.user.id,
-
-                title: title.trim(),
-
-                description,
-
-                files: uploadedFiles,
-
-                vaultType,
-
-                unlockMethod:
-                    vaultType === "private"
-                        ? unlockMethod
-                        : null,
-
-                unlockDate:
-                    parsedUnlockDate,
-
-                allowedLocation:
-                    unlockMethod === "location"
-                        ? {
-                            latitude,
-                            longitude,
-                            radiusInMeters,
-                        }
-                        : undefined,
-
-                nominee:
-                    nomineeUserId
-                        ? {
-                            nomineeUserId,
-                            unlockDate:
-                                parsedUnlockDate,
-                        }
-                        : undefined,
-
-                status: "locked",
-            });
-
-        await createNotification({
-            userId: req.user.id,
-            title: "Vault Created 🔐",
-            message: `Your vault "${title}" has been created successfully.`,
-            type: "vault_created",
+        const vault = await Vault.create({
+            ownerId: req.user.id,
+            title: title.trim(),
+            description,
+            files: uploadedFiles,
+            vaultType,
+            unlockMethod: vaultType === "private" ? unlockMethod : null,
+            unlockDate: parsedUnlockDate,
+            allowedLocation:
+                unlockMethod === "location"
+                    ? {
+                        latitude,
+                        longitude,
+                        radiusInMeters,
+                    }
+                    : undefined,
+            nominee: nomineeUserId
+                ? {
+                    nomineeUserId,
+                    unlockDate: parsedUnlockDate,
+                }
+                : undefined,
+            status: "locked",
         });
+
+        // ===============================
+        // NOTIFICATION (SAFE)
+        // ===============================
+
+        if (createNotification) {
+            await createNotification({
+                userId: req.user.id,
+                title: "Vault Created 🔐",
+                message: `Your vault "${title}" has been created successfully.`,
+                type: "vault_created",
+            });
+        }
 
         // ===============================
         // SUCCESS RESPONSE
         // ===============================
 
         return res.status(201).json({
-
             success: true,
-
-            message:
-                "Vault created successfully.",
-
+            message: "Vault created successfully.",
             data: vault,
         });
 
     } catch (error) {
-
-        console.log(
-            "Create Vault Error:",
-            error
-        );
+        console.log("Create Vault Error:", error);
 
         return res.status(500).json({
-
             success: false,
-            error: erorr.message,
-
-            message:
-                "Something went wrong while creating the vault.",
+            error: error.message,
+            message: "Something went wrong while creating the vault.",
         });
     }
 };
