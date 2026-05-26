@@ -1,15 +1,31 @@
 const { decrypt } = require("../config/encryption");
 
-// Convert encrypted vault files → usable frontend files
 const mapVaultFiles = (files = []) => {
-    return files.map((file) => ({
-        id: file._id,
-        originalName: file.originalName,
-        fileUrl: decrypt(file.fileUrl),   // 🔓 decrypted for frontend
-        publicId: decrypt(file.publicId), // 🔓 decrypted for delete ops
-        type: file.type,
-        size: file.size,
-    }));
+    return files.map(file => {
+
+        let fileUrl = file.fileUrl;
+        let publicId = file.publicId;
+
+        try {
+            fileUrl = decrypt(file.fileUrl);
+        } catch (err) {
+            console.log("fileUrl already plain text");
+        }
+
+        try {
+            publicId = decrypt(file.publicId);
+        } catch (err) {
+            console.log("publicId already plain text");
+        }
+
+        return {
+            originalName: file.originalName,
+            fileUrl,
+            publicId,
+            type: file.type,
+            size: file.size,
+        };
+    });
 };
 
-module.exports = { mapVaultFiles };
+module.exports = mapVaultFiles;

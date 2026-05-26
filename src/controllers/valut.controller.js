@@ -1,7 +1,7 @@
 const Vault = require("../models/valut.model");
 const cloudinary = require("../config/cloudinary");
 const { encrypt } = require("../config/encryption");
-const { mapVaultFiles } = require("../utils/vaultFileMapper");
+const mapVaultFiles = require("../utils/vaultFileMapper");
 
 
 let createNotification;
