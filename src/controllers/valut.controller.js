@@ -224,17 +224,14 @@ const getMyVaults = async (req, res) => {
             ownerId: req.user.id,
         }).sort({ createdAt: -1 });
 
-        const formatted = vaults.map((v) => ({
-            ...v.toObject(),
-            files: mapVaultFiles(v.files),
-        }));
-
-
         return res.status(200).json({
             success: true,
-            data: formatted,
+            data: vaults,
         });
+
     } catch (error) {
+        console.log("GET VAULTS ERROR ❌:", error); // 🔥 ADD THIS
+
         return res.status(500).json({
             success: false,
             message: "Failed to fetch vaults",
