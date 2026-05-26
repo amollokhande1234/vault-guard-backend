@@ -267,6 +267,12 @@ const getSingleVault = async (req, res) => {
 
         const now = new Date();
 
+        if (now < vault.unlockDate) {
+            return res.status(403).json({
+                success: false,
+                message: "Vault is still locked",
+            });
+        }
 
         if (now < vault.unlockDate) {
             return res.status(403).json({
@@ -274,6 +280,14 @@ const getSingleVault = async (req, res) => {
                 message: "Vault is still locked",
             });
         }
+
+        // auto unlock after time expires
+        if (vault.status === "locked") {
+            vault.status = "unlocked";
+            vault.isUnlocked = true;
+            await vault.save();
+        }
+
 
         if (vault.status === "locked") {
             vault.status = "unlocked";
