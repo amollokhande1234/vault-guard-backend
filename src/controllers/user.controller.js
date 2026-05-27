@@ -122,37 +122,31 @@ const getProfile = async (req, res) => {
 // ==========================================
 
 const updateProfile = async (req, res) => {
-
     try {
 
         const {
-            name,
+            username,
             profileImage,
+            mobileNumber,
+            address,
         } = req.body;
 
-        const updatedUser =
-            await User.findByIdAndUpdate(
-
-                req.user.id,
-
-                {
-                    name,
-                    profileImage,
-                },
-
-                {
-                    new: true,
-                }
-
-            ).select("-password");
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id,
+            {
+                username,
+                profileImage,
+                mobileNumber,
+                address,
+            },
+            {
+                new: true,
+            }
+        ).select("-password");
 
         return res.status(200).json({
-
             success: true,
-
-            message:
-                "Profile updated successfully.",
-
+            message: "Profile updated successfully.",
             data: updatedUser,
         });
 
@@ -161,15 +155,11 @@ const updateProfile = async (req, res) => {
         console.log("Update Error:", error);
 
         return res.status(500).json({
-
             success: false,
-
-            message:
-                "Failed to update profile.",
+            message: "Failed to update profile.",
         });
     }
 };
-
 // ==========================================
 // DELETE USER
 // ==========================================
