@@ -8,7 +8,7 @@ const User = require("../models/user.model");
 const Vault = require("../models/valut.model");
 
 
-// ========================
+// ======================== 
 // SEND OTP
 // ========================
 const sendOtp = async (req, res) => {
