@@ -56,6 +56,7 @@ const sendOtp = async (req, res) => {
         //         </div>
         //     `,
         // });
+
         transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: email,
@@ -66,6 +67,13 @@ const sendOtp = async (req, res) => {
         }).catch((err) => {
             console.log("Email error:", err);
         });
+
+        // await transporter.sendMail({
+        //     from: process.env.BREVO_USER,   // same brevo login email
+        //     to: email,
+        //     subject: "Your OTP 🔐",
+        //     html: `<h1>${otp}</h1>`,
+        // });
 
         return res.status(200).json({
             success: true,

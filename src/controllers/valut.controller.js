@@ -493,38 +493,130 @@ const unlockVault = async (req, res) => {
         }
 
         // 4. LOCATION CHECK
-        if (vault.unlockMethod === "location") {
+        // if (vault.unlockMethod === "location") {
 
-            if (!latitude || !longitude) {
+        //     if (!latitude || !longitude) {
+        //         return res.status(400).json({
+        //             success: false,
+        //             message: "Location required to unlock vault",
+        //         });
+        //     }
+
+        //     const distance = getDistance(
+        //         latitude,
+        //         longitude,
+        //         vault.allowedLocation.latitude,
+        //         vault.allowedLocation.longitude
+        //     );
+
+        //     if (distance > vault.allowedLocation.radiusInMeters) {
+        //         return res.status(403).json({
+        //             success: false,
+        //             message: "You are outside allowed location range",
+        //         });
+        //     }
+        // }
+        if (vault.unlockMethod === "location") {
+            // 1. Check vault configuration
+            if (!vault.allowedLocation) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Vault location is not configured",
+                });
+            }
+
+            // 2. Validate input
+            if (latitude == null || longitude == null) {
                 return res.status(400).json({
                     success: false,
                     message: "Location required to unlock vault",
                 });
             }
 
-            const distance = getDistance(
-                latitude,
-                longitude,
-                vault.allowedLocation.latitude,
-                vault.allowedLocation.longitude
-            );
+            // 3. Convert inputs safely
+            const userLat = Number(latitude);
+            const userLng = Number(longitude);
 
-            if (distance > vault.allowedLocation.radiusInMeters) {
+            const vaultLat = Number(vault.allowedLocation.latitude);
+            const vaultLng = Number(vault.allowedLocation.longitude);
+
+            const radius = Number(vault.allowedLocation.radiusInMeters);
+
+            // 4. Validate numbers
+            if (
+                !Number.isFinite(userLat) ||
+                !Number.isFinite(userLng) ||
+                !Number.isFinite(vaultLat) ||
+                !Number.isFinite(vaultLng)
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid coordinates provided",
+                });
+            }
+
+            if (!Number.isFinite(radius) || radius <= 0) {
+                return res.status(500).json({
+                    success: false,
+                    message: "Vault radius is not configured properly",
+                });
+            }
+
+            // 5. Haversine distance function
+            const getDistance = (lat1, lon1, lat2, lon2) => {
+                const toRad = (value) => (value * Math.PI) / 180;
+
+                const R = 6371000; // meters
+
+                const dLat = toRad(lat2 - lat1);
+                const dLon = toRad(lon2 - lon1);
+
+                const a =
+                    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(toRad(lat1)) *
+                    Math.cos(toRad(lat2)) *
+                    Math.sin(dLon / 2) *
+                    Math.sin(dLon / 2);
+
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+                return R * c;
+            };
+
+            // 6. Calculate distance
+            let distance;
+
+            try {
+                distance = getDistance(userLat, userLng, vaultLat, vaultLng);
+            } catch (err) {
+                console.error("Distance calculation error:", err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Failed to calculate distance",
+                });
+            }
+
+            // 7. Optional safety buffer (GPS drift handling)
+            const SAFE_BUFFER = 10; // meters
+
+            // 8. Final check
+            if (distance > radius + SAFE_BUFFER) {
                 return res.status(403).json({
                     success: false,
                     message: "You are outside allowed location range",
+                    distance,
+                    allowedRadius: radius,
                 });
             }
         }
-
         // 5. SUCCESS → UNLOCK VAULT
         vault.isUnlocked = true;
         vault.status = "unlocked";
 
-        await vault.save();
+        // await vault.save();
 
-        // OPTIONAL: delete OTP after success
-        await Otp.deleteMany({ email: req.user.email });
+        // // OPTIONAL: delete OTP after success
+        // await Otp.deleteMany({ email: req.user.email });
 
         return res.status(200).json({
             success: true,

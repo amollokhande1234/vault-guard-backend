@@ -59,7 +59,9 @@ router.delete(
 router.post(
     "/unlock",
     verifyToken,
+
     unlockVault
+
 );
 
 module.exports = router;
