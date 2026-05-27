@@ -452,35 +452,35 @@ const unlockVault = async (req, res) => {
             });
         }
 
-        // 2. OTP CHECK
-        if (vault.unlockMethod === "otp") {
+        // // 2. OTP CHECK
+        // if (vault.unlockMethod === "otp") {
 
-            if (!otp) {
-                return res.status(400).json({
-                    success: false,
-                    message: "OTP is required",
-                });
-            }
+        //     if (!otp) {
+        //         return res.status(400).json({
+        //             success: false,
+        //             message: "OTP is required",
+        //         });
+        //     }
 
-            const otpRecord = await Otp.findOne({
-                email: req.user.email,
-                otp,
-            }).sort({ createdAt: -1 });
+        //     const otpRecord = await Otp.findOne({
+        //         email: req.user.email,
+        //         otp,
+        //     }).sort({ createdAt: -1 });
 
-            if (!otpRecord) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Invalid OTP",
-                });
-            }
+        //     if (!otpRecord) {
+        //         return res.status(400).json({
+        //             success: false,
+        //             message: "Invalid OTP",
+        //         });
+        //     }
 
-            if (otpRecord.expiresAt < new Date()) {
-                return res.status(400).json({
-                    success: false,
-                    message: "OTP expired",
-                });
-            }
-        }
+        //     if (otpRecord.expiresAt < new Date()) {
+        //         return res.status(400).json({
+        //             success: false,
+        //             message: "OTP expired",
+        //         });
+        //     }
+        // }
 
         // 3. BIOMETRIC CHECK
         if (vault.unlockMethod === "biometric") {
