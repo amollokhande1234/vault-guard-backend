@@ -23,7 +23,7 @@ const {
 router.post(
     "/create",
     verifyToken,
-    upload.array("files", 5),
+    upload.array("files", 10),
     createVault
 );
 

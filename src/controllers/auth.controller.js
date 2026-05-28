@@ -338,9 +338,79 @@ async function verifyOTP(req, res) {
     }
 }
 
+// ======================================
+// ✅ CHANGE PASSWORD
+// Requires: oldPassword, newPassword
+// User must be logged in (protect middleware)
+// ======================================
+async function changePassword(req, res) {
+    try {
+        const { oldPassword, newPassword } = req.body;
+
+        // Validation
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Old password and new password are required",
+            });
+        }
+
+        if (oldPassword === newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "New password must be different from old password",
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "New password must be at least 6 characters",
+            });
+        }
+
+        // Fetch user with password field
+        const user = await userModel.findById(req.user.id).select("+password");
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        // Verify old password
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Old password is incorrect",
+            });
+        }
+
+        // Hash and save new password
+        user.password = await bcrypt.hash(newPassword, 10);
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Password changed successfully",
+        });
+
+    } catch (e) {
+        console.log("CHANGE PASSWORD ERROR:", e);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+}
+
 module.exports = {
     register,
     login,
     sendOTP,
     verifyOTP,
+    changePassword,
 };

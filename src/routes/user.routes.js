@@ -49,6 +49,7 @@ router.get(
 router.put(
     "/update",
     verifyToken,
+
     updateProfile
 );
 
