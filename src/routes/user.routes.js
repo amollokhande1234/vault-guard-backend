@@ -9,7 +9,10 @@ const {
     deleteUser,
 } = require("../controllers/user.controller");
 
+
+
 const { verifyToken } = require("../middlewares/auth.middleware");
+const upload = require("../middlewares/uploadFile.middleware");
 
 // ==========================================
 // USER ROUTES
@@ -24,7 +27,7 @@ router.get("/all", verifyToken, getAllUsers);
 router.get("/profile/me", verifyToken, getProfile);
 
 // Update profile
-router.put("/update", verifyToken, updateProfile);
+router.put("/update", verifyToken, upload.single("profileImage"), updateProfile);
 
 // Delete account
 router.delete("/delete", verifyToken, deleteUser);
